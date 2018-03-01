@@ -18,7 +18,7 @@ type ByteStats struct {
 	block_max   uint64
 }
 
-func fileContentAnalysis(file_path string, workers int) {
+func fileContentAnalysis(file_path string, fileSize int64, workers int) []ByteStats {
 	counts := make([]ByteStats, 256)
 	var lastByte byte = 0
 	var lastCnt uint64 = 0
@@ -27,12 +27,14 @@ func fileContentAnalysis(file_path string, workers int) {
 	file, err := os.Open(file_path)
 	if err != nil {
 		log.Fatal(err)
-		return
 	}
 	defer file.Close()
 
+	var totalRead int64 = 0
+	fmt.Printf("Processing %5.2f completed.", float64(totalRead)/float64(fileSize)*100.0)
 	for {
 		bytesRead, err := file.Read(buffer)
+		totalRead += int64(bytesRead)
 		if err != nil {
 			if err == io.EOF {
 				fmt.Println("Reached EOF")
@@ -65,20 +67,27 @@ func fileContentAnalysis(file_path string, workers int) {
 				lastCnt = 1
 			}
 		}
+		fmt.Printf("\rProcessing %5.2f completed.", float64(totalRead)/float64(fileSize)*100.0)
 	}
 
+	return counts
+}
+
+func printCountResult(counts []ByteStats, fileSize int64) {
 	fmt.Println("================= file content statistic =================")
 	for i := 0; i < 256; i++ {
-		fmt.Printf("Byte: %3d, Total: %d, 2-2: %d, 3-4: %d, 5-8: %d, 9-512: %d, 512+: %d, block_max: %d\n",
-			i, counts[i].count_total, counts[i].count_2, counts[i].count_3_4, counts[i].count_5_8,
-			counts[i].count_9_512, counts[i].count_512p, counts[i].block_max)
+		if counts[i].count_total > 0 {
+			fmt.Printf("Byte: %3d, Total: %-10d, 2-2: %-10d, 3-4: %-10d, 5-8: %-10d, 9-512: %-10d, 512+: %-10d, block_max: %-10d, percent: %5.2f\n",
+				i, counts[i].count_total, counts[i].count_2, counts[i].count_3_4, counts[i].count_5_8,
+				counts[i].count_9_512, counts[i].count_512p, counts[i].block_max, float64(counts[i].count_total)/float64(fileSize)*100)
+		}
 	}
 }
 
-func getFileInfo(file_path string) error {
+func getFileInfo(file_path string) (int64, error) {
 	fileInfo, err := os.Stat(file_path)
 	if err != nil {
-		return err
+		return 0, err
 	}
 	fmt.Println("================= file info =================")
 	fmt.Println("File name:            ", fileInfo.Name())
@@ -88,7 +97,7 @@ func getFileInfo(file_path string) error {
 	fmt.Println("Is Directory:         ", fileInfo.IsDir())
 	fmt.Printf("System interface type: %T\n", fileInfo.Sys())
 	fmt.Printf("System info:           %+v\n\n", fileInfo.Sys())
-	return nil
+	return fileInfo.Size(), nil
 }
 
 func main() {
@@ -110,11 +119,13 @@ func main() {
 	fmt.Println("File to analysis:", file_path)
 	fmt.Println("Number of workers:", *n_worker)
 
-	if err := getFileInfo(file_path); err != nil {
+	fileSize, err := getFileInfo(file_path)
+	if err != nil {
 		log.Fatal(err)
 	}
 
-	fileContentAnalysis(file_path, *n_worker)
+	counts := fileContentAnalysis(file_path, fileSize, *n_worker)
+	printCountResult(counts, fileSize)
 
 	fmt.Println("Done, Bye!")
 }
