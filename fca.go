@@ -12,7 +12,13 @@ func getFileInfo(file_path string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println(fileInfo)
+	fmt.Println("File name:", fileInfo.Name())
+	fmt.Println("Size in bytes:", fileInfo.Size())
+	fmt.Println("Permissions:", fileInfo.Mode())
+	fmt.Println("Last modified:", fileInfo.ModTime())
+	fmt.Println("Is Directory: ", fileInfo.IsDir())
+	fmt.Printf("System interface type: %T\n", fileInfo.Sys())
+	fmt.Printf("System info: %+v\n\n", fileInfo.Sys())
 	return nil
 }
 
