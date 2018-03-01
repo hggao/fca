@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"log"
 	"os"
 )
 
@@ -24,4 +25,10 @@ func main() {
 
 	fmt.Println("File to analysis:", file_path)
 	fmt.Println("Number of workers:", *n_worker)
+
+	fileInfo, err := os.Stat(file_path)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(fileInfo)
 }
