@@ -7,6 +7,15 @@ import (
 	"os"
 )
 
+func getFileInfo(file_path string) error {
+	fileInfo, err := os.Stat(file_path)
+	if err != nil {
+		return err
+	}
+	fmt.Println(fileInfo)
+	return nil
+}
+
 func main() {
 	n_worker := flag.Int("workers", 1, "Number of workers")
 	flag.Parse()
@@ -26,9 +35,7 @@ func main() {
 	fmt.Println("File to analysis:", file_path)
 	fmt.Println("Number of workers:", *n_worker)
 
-	fileInfo, err := os.Stat(file_path)
-	if err != nil {
+	if err := getFileInfo(file_path); err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(fileInfo)
 }
