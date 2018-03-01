@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 )
@@ -19,8 +20,52 @@ type ByteStats struct {
 
 func fileContentAnalysis(file_path string, workers int) {
 	counts := make([]ByteStats, 256)
-	//var last byte = 0
-	//var ccc uint64 = 0
+	var lastByte byte = 0
+	var lastCnt uint64 = 0
+	buffer := make([]byte, 4096)
+
+	file, err := os.Open(file_path)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	defer file.Close()
+
+	for {
+		bytesRead, err := file.Read(buffer)
+		if err != nil {
+			if err == io.EOF {
+				fmt.Println("Reached EOF")
+			} else {
+				log.Fatal(err)
+			}
+			break
+		}
+		for i := 0; i < bytesRead; i++ {
+			counts[buffer[i]].count_total += 1
+			if buffer[i] == lastByte {
+				lastCnt += 1
+				if lastCnt > counts[buffer[i]].block_max {
+					counts[buffer[i]].block_max = lastCnt
+				}
+			} else { //A new value
+				if lastCnt < 2 {
+				} else if lastCnt == 2 {
+					counts[lastByte].count_2 += 1
+				} else if lastCnt <= 4 {
+					counts[lastByte].count_3_4 += 1
+				} else if lastCnt <= 8 {
+					counts[lastByte].count_5_8 += 1
+				} else if lastCnt <= 512 {
+					counts[lastByte].count_9_512 += 1
+				} else {
+					counts[lastByte].count_512p += 1
+				}
+				lastByte = buffer[i]
+				lastCnt = 1
+			}
+		}
+	}
 
 	fmt.Println("================= file content statistic =================")
 	for i := 0; i < 256; i++ {
